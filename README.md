@@ -10,7 +10,7 @@ Aplicación sencilla de PHP, Bootstrap y PostgreSQL para instalar directamente e
 - **La raíz pública del sitio debe apuntar exclusivamente a `public/`**, nunca a la raíz del repositorio. El SQL y la configuración quedan fuera del sitio web.
 - Bootstrap se carga desde `cdn.jsdelivr.net`; el navegador necesita acceso a Internet para cargarlo.
 
-La estructura es `public/` (página y estilos), `database/` (esquema y ejemplos), `config.php` (carga de configuración) y `deploy/` (ejemplo de Apache).
+La estructura es `public/` (página y estilos), `database/` (esquema y ejemplos), `config.php` (carga de configuración).
 
 ## Ubuntu Server 24.04 LTS · Apache
 
@@ -42,18 +42,33 @@ Estos scripts se ejecutan una sola vez sobre una base vacía. No se vuelven a im
 Configura la conexión:
 
 ```sh
-sudo cp /var/www/andesur/config.local.example.php /var/www/andesur/config.local.php
 sudo nano /var/www/andesur/config.local.php
 sudo chown root:www-data /var/www/andesur/config.local.php
 sudo chmod 640 /var/www/andesur/config.local.php
 ```
 
-Escribe la contraseña del usuario `andesur` en `config.local.php`. El usuario de Apache necesita lectura de los archivos y acceso a sus directorios, pero no permisos de escritura en el repositorio. PHP guarda las sesiones en su directorio habitual del sistema.
+En `config.local.php` usa el ejemplo de conexión de la sección «Configuración» e introduce la contraseña del usuario `andesur`. El usuario de Apache necesita lectura de los archivos y acceso a sus directorios, pero no permisos de escritura en el repositorio. PHP guarda las sesiones en su directorio habitual del sistema.
 
-Instala el sitio Apache y cambia `ServerName` por tu dominio o nombre del servidor:
+Crea `/etc/apache2/sites-available/andesur.conf` con este contenido y cambia `ServerName` por tu dominio o nombre del servidor:
+
+```apache
+<VirtualHost *:80>
+    ServerName andesur.example.com
+    DocumentRoot /var/www/andesur/public
+    <Directory /var/www/andesur/public>
+        Options -Indexes
+        AllowOverride None
+        Require all granted
+        DirectoryIndex index.php
+    </Directory>
+    ErrorLog ${APACHE_LOG_DIR}/andesur-error.log
+    CustomLog ${APACHE_LOG_DIR}/andesur-access.log combined
+</VirtualHost>
+```
+
+Guarda el archivo y habilita el sitio:
 
 ```sh
-sudo cp /var/www/andesur/deploy/apache.conf /etc/apache2/sites-available/andesur.conf
 sudo nano /etc/apache2/sites-available/andesur.conf
 sudo a2ensite andesur
 sudo apache2ctl configtest
@@ -68,12 +83,24 @@ Accede mediante el nombre configurado. Si usas un dominio, configura primero su 
 2. Instala PHP 8.3 o posterior para Windows, compilación **x64 Non Thread Safe**, desde `windows.php.net`. Extráelo en `C:\PHP` e instala el runtime de Microsoft Visual C++ requerido por esa versión. Copia `php.ini-production` a `php.ini`.
 3. En `C:\PHP\php.ini` establece `extension_dir = "C:\PHP\ext"`, habilita `extension=pdo_pgsql`, `cgi.force_redirect=0` y `fastcgi.impersonate=1`. Añade `C:\PHP` al PATH del sistema para que FastCGI pueda localizar las bibliotecas de PHP y reinicia IIS después de cambiarlo. Crea `C:\PHP\sessions`, configura `session.save_path = "C:\PHP\sessions"` y permite modificar esa carpeta únicamente a la identidad del pool de la aplicación (además de los administradores). PHP necesita ese permiso para las sesiones.
 4. Instala PostgreSQL 16 o posterior con pgAdmin. Crea el usuario de acceso `andesur` con una contraseña propia y una base `andesur` cuyo propietario sea ese usuario. Conéctate a esa base como `andesur` y ejecuta `database/01-schema.sql`; para la demostración ejecuta después `database/02-seed.sql`.
-5. Copia el repositorio en `C:\Sites\Andesur-Login`. Copia `config.local.example.php` a `config.local.php` e introduce las credenciales de PostgreSQL.
+5. Copia el repositorio en `C:\Sites\Andesur-Login`. Crea `config.local.php` con el ejemplo de la sección «Configuración» e introduce las credenciales de PostgreSQL.
 6. En IIS crea un pool llamado `Andesur` con **Sin código administrado** y crea un sitio cuya ruta física sea **`C:\Sites\Andesur-Login\public`**. Configura su binding (nombre del servidor y puerto). Concede lectura y ejecución a `IIS AppPool\Andesur` sobre el proyecto y `C:\PHP`, y modificación solo sobre `C:\PHP\sessions`.
 7. En **Asignaciones de controlador** del sitio añade una asignación de módulo: ruta `*.php`, módulo `FastCgiModule`, ejecutable `C:\PHP\php-cgi.exe`, nombre `PHP FastCGI`. Acepta crear la aplicación FastCGI. `public/web.config` establece `index.php` como documento predeterminado y deshabilita listar directorios.
 8. Reinicia el sitio y accede por el nombre o IP configurados. Comprueba en consola `C:\PHP\php.exe -m` y confirma que aparecen `PDO` y `pdo_pgsql`. Mantén PostgreSQL accesible solo localmente si está en el mismo servidor.
 
 ## Configuración y cuentas de demostración
+
+Crea `config.local.php` en la raíz del repositorio con este contenido y sustituye la contraseña:
+
+```php
+<?php
+return [
+    'dsn' => 'pgsql:host=localhost;port=5432;dbname=andesur',
+    'user' => 'andesur',
+    'password' => 'TU_CONTRASENA_DE_POSTGRESQL',
+    'timezone' => 'America/La_Paz',
+];
+```
 
 `config.local.php` contiene la conexión y la zona horaria; está excluido de Git y fuera de `public/`. Usa un usuario de base de datos propio, no el superusuario `postgres`.
 

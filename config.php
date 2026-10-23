@@ -1,5 +1,5 @@
 <?php
-// Configuración local: copia config.local.example.php a config.local.php.
+// Configuración local: crea config.local.php siguiendo el ejemplo del README.
 $local = __DIR__ . '/config.local.php';
 return is_file($local) ? require $local : [
     'dsn' => 'pgsql:host=localhost;port=5432;dbname=andesur',
