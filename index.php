@@ -2,13 +2,14 @@
 ini_set('session.use_strict_mode', '1');
 session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);
 session_start();
-$zone = getenv('APP_TIMEZONE') ?: 'America/La_Paz';
+$config = require __DIR__ . '/config.php';
+$zone = $config['timezone'];
 date_default_timezone_set($zone);
 function esc($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 $_SESSION['csrf'] ??= bin2hex(random_bytes(32));
 $error = '';
 try {
-    $db = new PDO(getenv('DB_DSN') ?: 'pgsql:host=localhost;dbname=andesur', getenv('DB_USER') ?: 'andesur', getenv('DB_PASSWORD') ?: '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $db = new PDO($config['dsn'], $config['user'], $config['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     $stmt = $db->prepare("SELECT set_config('TimeZone', ?, false)");
     $stmt->execute([$zone]);
 } catch (PDOException $e) {
@@ -22,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (($_POST['action'] ?? '') === 'logout') {
         $_SESSION = []; session_regenerate_id(true);
-        header('Location: /'); exit;
+        header('Location: index.php'); exit;
     }
     $email = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
     $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
@@ -35,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         session_regenerate_id(true);
         $_SESSION['user'] = ['name' => $user['name'], 'role' => $user['role']];
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
-        header('Location: /'); exit;
+        header('Location: index.php'); exit;
     }
     $error = 'Correo o contraseña incorrectos.';
 }
@@ -58,10 +59,10 @@ if ($loggedIn) {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Andesur · Accesos del equipo</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="/assets/style.css" rel="stylesheet">
+<link href="assets/style.css" rel="stylesheet">
 </head>
 <body>
-<header class="topbar"><a class="brand" href="/"><span class="brand-icon">A</span> ANDESUR<span class="brand-sub"> / EQUIPO</span></a><span class="status"><span>●</span> Registro de accesos</span></header>
+<header class="topbar"><a class="brand" href="index.php"><span class="brand-icon">A</span> ANDESUR<span class="brand-sub"> / EQUIPO</span></a><span class="status"><span>●</span> Registro de accesos</span></header>
 <main class="container py-5">
 <?php if (!$loggedIn): ?>
 <div class="login-layout">

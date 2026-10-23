@@ -1,16 +1,19 @@
 # Andesur · Portal de accesos
 
-Aplicación sencilla con PHP 8.3, Bootstrap 5 y PostgreSQL 16. Requiere Docker con Compose.
+Login sencillo con PHP, Bootstrap y PostgreSQL, para probar en XAMPP.
 
-## Ejecutar
+## Instalación en XAMPP
 
-Desde la raíz del repositorio:
+1. Copia el repositorio a `C:\xampp\htdocs\Andesur-Login`.
+2. Instala e inicia PostgreSQL: XAMPP incluye MariaDB, pero esta aplicación usa **PostgreSQL**, instalado por separado.
+3. En `C:\xampp\php\php.ini`, activa `extension=pdo_pgsql` (quita el `;` inicial). Reinicia Apache desde XAMPP.
+4. En pgAdmin crea una base de datos llamada `andesur`. Abre su herramienta de consultas y ejecuta primero `database/01-schema.sql` y después `database/02-seed.sql`. Ejecútalos una sola vez en una base vacía.
+5. Copia `config.local.example.php` a `config.local.php`. Escribe el usuario y la contraseña de tu PostgreSQL. Ese archivo queda excluido de Git.
+6. Inicia Apache y abre `http://localhost/Andesur-Login/`.
 
-```sh
-docker compose up -d --build
-```
+No necesitas Docker, Composer ni Python. Bootstrap se carga por Internet desde `cdn.jsdelivr.net`. PHP 8.0 o posterior, con PDO PostgreSQL habilitado. Los archivos `.htaccess` evitan publicar el SQL y la configuración; conserva la configuración habitual de XAMPP que permite esos archivos (`AllowOverride All`).
 
-El servidor escucha en el puerto **8080**. Bootstrap se carga desde `cdn.jsdelivr.net`.
+## Cuentas de prueba
 
 | Correo | Rol | Contraseña |
 | --- | --- | --- |
@@ -18,23 +21,16 @@ El servidor escucha en el puerto **8080**. Bootstrap se carga desde `cdn.jsdeliv
 | carlos@andesur.test | Gerente | P@ssw0rd |
 | sofia@andesur.test | Administrador | P@ssw0rd |
 
-Cada login correcto añade un evento. Recargar la página no añade eventos. Todos los usuarios autenticados pueden consultar el mismo historial; los roles son informativos. Se agrupa por persona y día, con total, primer acceso, último acceso y detalle de todas las horas con segundos. El selector permite consultar cualquier fecha. Zona horaria: `America/La_Paz`.
+Las contraseñas se guardan como hashes bcrypt. Los datos iniciales incluyen accesos ficticios de hoy y los dos días anteriores.
 
-## Base de datos
+Cada inicio de sesión correcto suma un acceso. Recargar la página no suma accesos. Todos los usuarios ven el mismo historial; los roles son informativos. El historial está separado por día y muestra cantidad de ingresos, primera y última hora, y el detalle de todas las horas con segundos. Zona horaria: `America/La_Paz`.
 
-- `database/01-schema.sql`: usuarios y eventos, con índices.
-- `database/02-seed.sql`: tres usuarios con contraseñas bcrypt y accesos de ejemplo de hoy y los dos días anteriores. Los horarios de ejemplo son ficticios.
-- PostgreSQL conserva los datos en un volumen Docker y no publica su puerto al host.
-- Los scripts SQL solo se ejecutan al crear una base vacía.
+## Probar
 
-```sh
-docker compose stop                 # detener sin borrar datos
-docker compose up -d                # volver a iniciar
-python tests/smoke.py               # prueba funcional; añade dos accesos de Ana
-```
+- Entra con una cuenta y comprueba que aparece en el día actual.
+- Cierra sesión y vuelve a entrar: su contador debe aumentar en uno.
+- Recarga la página: el contador debe mantenerse.
+- Selecciona otro día para consultar sus registros.
+- Una contraseña incorrecta debe mostrar un error y no registrar un acceso.
 
-Para borrar todos los datos y volver a cargar el esquema y ejemplos (destructivo): `docker compose down -v`, seguido de `docker compose up -d --build`.
-
-## Configuración
-
-Compose suministra `DB_DSN`, `DB_USER`, `DB_PASSWORD` y `APP_TIMEZONE`. La contraseña de base de datos incluida es únicamente para desarrollo local. PHP usa PDO con consultas preparadas, verificación de contraseñas hash, protección CSRF y regeneración de sesión. El router solo publica la página y sus estilos. Para un despliegue real cambia credenciales y cuentas de demostración y utiliza HTTPS y un servidor PHP de producción; el servidor integrado es para desarrollo.
+Las cuentas y contraseñas compartidas son únicamente para pruebas locales.
