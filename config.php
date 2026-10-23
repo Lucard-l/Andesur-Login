@@ -3,7 +3,7 @@
 $local = __DIR__ . '/config.local.php';
 return is_file($local) ? require $local : [
     'dsn' => 'pgsql:host=localhost;port=5432;dbname=andesur',
-    'user' => 'postgres',
+    'user' => 'andesur',
     'password' => '',
     'timezone' => 'America/La_Paz',
 ];

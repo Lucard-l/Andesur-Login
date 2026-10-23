@@ -2,7 +2,7 @@
 ini_set('session.use_strict_mode', '1');
 session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);
 session_start();
-$config = require __DIR__ . '/config.php';
+$config = require dirname(__DIR__) . '/config.php';
 $zone = $config['timezone'];
 date_default_timezone_set($zone);
 function esc($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
